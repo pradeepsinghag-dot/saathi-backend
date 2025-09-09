@@ -1,56 +1,52 @@
-# routers/tts_router.py
 from fastapi import APIRouter, HTTPException
-from fastapi.responses import FileResponse
+from fastapi.responses import StreamingResponse
 from bson import ObjectId
-from db import db  # your MongoDB instance
+from db import db
 import pyttsx3
-import tempfile
-import os
+import io
+import logging
 
-router = APIRouter(
-    prefix="/tts",
-    tags=["TTS"]
-)
+router = APIRouter(prefix="/tts", tags=["TTS"])
+
+logging.basicConfig(level=logging.DEBUG)
 
 @router.get("/post/{post_id}")
 async def tts_post(post_id: str):
-    # Validate ObjectId
     try:
         oid = ObjectId(post_id)
-    except:
+    except Exception as e:
+        logging.error(f"Invalid ObjectId: {e}")
         raise HTTPException(status_code=400, detail="Invalid post ID")
 
-    # Fetch post from MongoDB
     post = await db.posts.find_one({"_id": oid})
     if not post:
+        logging.error(f"Post not found: {post_id}")
         raise HTTPException(status_code=404, detail="Post not found")
 
     text = post.get("description_detail", "")
     if not text:
+        logging.error("No description available")
         raise HTTPException(status_code=404, detail="No description available")
 
-    # Offline TTS with pyttsx3
-    engine = pyttsx3.init()
-    engine.setProperty('rate', 150)  # optional: speech speed
-    engine.setProperty('volume', 1.0)  # optional: volume
+    try:
+        mp3_fp = io.BytesIO()
+        engine = pyttsx3.init()
 
-    # Use a temporary file to store the MP3
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as f:
-        engine.save_to_file(text, f.name)
+        # Optional: check available voices
+        voices = engine.getProperty('voices')
+        logging.debug(f"Available voices: {[v.name for v in voices]}")
+
+        engine.save_to_file(text, 'temp_audio.wav')
         engine.runAndWait()
-        filename = f.name
+        logging.info("Audio generated successfully")
 
-    # Return the MP3 as a streaming response
-    response = FileResponse(
-        path=filename,
-        media_type="audio/mpeg",
-        filename="tts.mp3"
-    )
+        # Read the file and stream
+        with open('temp_audio.wav', 'rb') as f:
+            mp3_fp.write(f.read())
+        mp3_fp.seek(0)
 
-    # Clean up temporary file after response
-    @response.background
-    def cleanup():
-        if os.path.exists(filename):
-            os.remove(filename)
+        return StreamingResponse(mp3_fp, media_type="audio/wav")
 
-    return response
+    except Exception as e:
+        logging.error(f"TTS error: {e}")
+        raise HTTPException(status_code=500, detail=f"TTS error: {e}")
