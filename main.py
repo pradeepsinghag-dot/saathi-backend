@@ -4,8 +4,13 @@ from pydantic import BaseModel, Field
 from typing import List
 from bson import ObjectId
 from db import db
+from routers import tts_router  # import your TTS router
 
+# Initialize FastAPI app first
 app = FastAPI()
+
+# Include the TTS router AFTER app is created
+app.include_router(tts_router.router)
 
 # Allow all origins (for Flutter or mobile app)
 app.add_middleware(
@@ -68,7 +73,9 @@ async def update_post(post_id: str, post: Post):
         {"_id": ObjectId(post_id)}, {"$set": post.dict()}
     )
     if result.modified_count == 0:
-        raise HTTPException(status_code=404, detail="Post not found or no changes made")
+        raise HTTPException(
+            status_code=404, detail="Post not found or no changes made"
+        )
     updated = await db.posts.find_one({"_id": ObjectId(post_id)})
     return {**updated, "id": str(updated["_id"])}
 
