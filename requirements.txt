@@ -17,4 +17,4 @@ typing-inspection==0.4.1
 typing_extensions==4.15.0
 uvicorn==0.35.0
 # gTTS==2.5.4
-pyttsx3 2.99
+pyttsx3==2.99
