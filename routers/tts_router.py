@@ -1,32 +1,27 @@
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from gtts import gTTS
+from db import db  # your MongoDB connection
+from bson import ObjectId
 import io
 
 router = APIRouter(prefix="/tts", tags=["TTS"])
 
-@router.get("/speak")
-async def speak(text: str):
-    """
-    Converts the given text to speech (MP3) and streams it.
-
-    Query Parameters:
-        text: str - The text to convert to speech
-    """
+@router.get("/post/{post_id}")
+async def tts_post(post_id: str):
+    # Fetch post from MongoDB
+    post = await db.posts.find_one({"_id": ObjectId(post_id)})
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found")
+    
+    text = post.get("description_brief", "")
     if not text:
-        raise HTTPException(status_code=400, detail="Text parameter is required")
+        raise HTTPException(status_code=400, detail="No text found in post")
     
-    try:
-        # Generate speech using gTTS
-        tts = gTTS(text=text, lang="en")
-        
-        # Save to a BytesIO object (in-memory)
-        mp3_fp = io.BytesIO()
-        tts.write_to_fp(mp3_fp)
-        mp3_fp.seek(0)
-        
-        # Stream the MP3 file as a response
-        return StreamingResponse(mp3_fp, media_type="audio/mpeg")
+    # Generate TTS
+    tts = gTTS(text=text, lang="en")
+    mp3_fp = io.BytesIO()
+    tts.write_to_fp(mp3_fp)
+    mp3_fp.seek(0)
     
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"TTS generation failed: {e}")
+    return StreamingResponse(mp3_fp, media_type="audio/mpeg")
