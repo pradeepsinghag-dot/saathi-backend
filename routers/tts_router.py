@@ -5,10 +5,21 @@ from db import db
 import pyttsx3
 import io
 import logging
+import tempfile
+import os
 
 router = APIRouter(prefix="/tts", tags=["TTS"])
 
 logging.basicConfig(level=logging.DEBUG)
+
+# Initialize engine globally (better than creating per-request)
+engine = pyttsx3.init()
+engine.setProperty("rate", 160)   # Adjust speech speed
+engine.setProperty("volume", 1.0) # Max volume
+
+voices = engine.getProperty("voices")
+if voices:
+    engine.setProperty("voice", voices[0].id)  # Pick first available voice
 
 @router.get("/post/{post_id}")
 async def tts_post(post_id: str):
@@ -29,23 +40,22 @@ async def tts_post(post_id: str):
         raise HTTPException(status_code=404, detail="No description available")
 
     try:
-        mp3_fp = io.BytesIO()
-        engine = pyttsx3.init()
+        # Create temporary file in /tmp (safe for Render)
+        tmp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".wav", dir="/tmp")
+        tmp_file.close()
 
-        # Optional: check available voices
-        voices = engine.getProperty('voices')
-        logging.debug(f"Available voices: {[v.name for v in voices]}")
-
-        engine.save_to_file(text, 'temp_audio.wav')
+        # Generate TTS
+        engine.save_to_file(text, tmp_file.name)
         engine.runAndWait()
-        logging.info("Audio generated successfully")
+        logging.info(f"Audio generated: {tmp_file.name}")
 
-        # Read the file and stream
-        with open('temp_audio.wav', 'rb') as f:
-            mp3_fp.write(f.read())
-        mp3_fp.seek(0)
+        def iterfile():
+            with open(tmp_file.name, mode="rb") as f:
+                while chunk := f.read(4096):
+                    yield chunk
+            os.remove(tmp_file.name)  # cleanup
 
-        return StreamingResponse(mp3_fp, media_type="audio/wav")
+        return StreamingResponse(iterfile(), media_type="audio/wav")
 
     except Exception as e:
         logging.error(f"TTS error: {e}")
