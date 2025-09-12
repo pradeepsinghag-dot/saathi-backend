@@ -8,7 +8,7 @@ router = APIRouter(prefix="/places")
 async def get_nearby_places(
     lat: float = Query(..., description="User latitude"),
     lng: float = Query(..., description="User longitude"),
-    radius: int = Query(500, description="Search radius in meters")
+    radius: int = Query(5000, description="Search radius in meters")
 ):
     cursor = db.places.find({
         "location": {
