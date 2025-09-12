@@ -5,13 +5,13 @@ from typing import List, Dict, Any
 from bson import ObjectId
 from db import db
 from routers import tts_router  # your TTS router
-
+from routers import routes_nearby as places_router
 # ---------------------
 # Initialize App
 # ---------------------
 app = FastAPI()
 app.include_router(tts_router.router)
-
+app.include_router(places_router)
 # Allow all origins (Flutter/mobile)
 app.add_middleware(
     CORSMiddleware,
