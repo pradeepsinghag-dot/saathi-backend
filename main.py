@@ -11,7 +11,7 @@ from routers import routes_nearby as places_router
 # ---------------------
 app = FastAPI()
 app.include_router(tts_router.router)
-app.include_router(places_router)
+app.include_router(places_router.router)
 # Allow all origins (Flutter/mobile)
 app.add_middleware(
     CORSMiddleware,
