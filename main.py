@@ -35,6 +35,14 @@ class PostIn(BaseModel):
 class PostOut(PostIn):
     id: str = Field(default_factory=str)
 
+# New model for the response format that Flutter expects
+class NearbyPostOut(BaseModel):
+    id: str
+    latitude: float
+    longitude: float
+    description_brief: str
+    description_detail: str
+
 
 # ---------------------
 # Routes
@@ -90,13 +98,13 @@ async def delete_post(post_id: str):
 
 
 # ---------------------
-# Nearby Search (500m by default)
+# Nearby Search - Updated to return format Flutter expects
 # ---------------------
-@app.get("/places/nearby", response_model=List[PostOut])
+@app.get("/places/nearby", response_model=List[NearbyPostOut])
 async def get_nearby_posts(
     lat: float = Query(...),
     lng: float = Query(...),
-    radius: int = Query(500, description="Search radius in meters")
+    radius: int = Query(5000, description="Search radius in meters")
 ):
     query = {
         "location": {
@@ -109,5 +117,13 @@ async def get_nearby_posts(
 
     posts = []
     async for doc in db.posts.find(query):
-        posts.append({**doc, "id": str(doc["_id"])})
+        # Extract coordinates from GeoJSON and convert to separate fields
+        coordinates = doc["location"]["coordinates"]
+        posts.append({
+            "id": str(doc["_id"]),
+            "latitude": coordinates[1],  # Latitude is the second coordinate
+            "longitude": coordinates[0],  # Longitude is the first coordinate
+            "description_brief": doc.get("description_brief", ""),
+            "description_detail": doc.get("description_detail", "")
+        })
     return posts
