@@ -10,7 +10,7 @@ async def get_nearby_places(
     lng: float = Query(..., description="User longitude"),
     radius: int = Query(5000, description="Search radius in meters")
 ):
-    cursor = db.places.find({
+    cursor = db.posts.find({
         "location": {
             "$near": {
                 "$geometry": {
