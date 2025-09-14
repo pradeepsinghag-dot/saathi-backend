@@ -92,7 +92,7 @@ async def delete_post(post_id: str):
 # ---------------------
 # Nearby Search (500m by default)
 # ---------------------
-@app.get("/posts/nearby", response_model=List[PostOut])
+@app.get("/places/nearby", response_model=List[PostOut])
 async def get_nearby_posts(
     lat: float = Query(...),
     lng: float = Query(...),
