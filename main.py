@@ -104,7 +104,7 @@ async def delete_post(post_id: str):
 async def get_nearby_posts(
     lat: float = Query(...),
     lng: float = Query(...),
-    radius: int = Query(5000, description="Search radius in meters")
+    radius: int = Query(200, description="Search radius in meters")
 ):
     query = {
         "location": {
