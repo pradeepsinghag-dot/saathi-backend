@@ -53,7 +53,7 @@ async def tts_post(post_id: str):
         raise HTTPException(status_code=404, detail="Post not found")
     
     text_brief = post.get(" ", "")
-    text_brief = post.get("description_brief", "")
+    # text_brief = post.get("description_brief", "")
     text_detail = post.get("description_detail", "")
     text = f"{text_brief}. {text_detail}".strip()
 
