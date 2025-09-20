@@ -54,7 +54,9 @@ async def tts_post(post_id: str):
     
     text_brief = post.get(" ", "")
     # text_brief = post.get("description_brief", "")
-    text_detail = post.get("description_detail", "")
+    # text_detail = post.get("description_detail", "")
+    text_brief = post.get("description_brief", "")
+    text_detail = post.get("", "")
     text = f"{text_brief}. {text_detail}".strip()
 
     if not text:
